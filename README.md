@@ -6,8 +6,7 @@ Datadog Year in Review Wrapped HackDay project
 
 `brew install python3`
 
-2) Setup
-Run the command:
+2) Setup the environment:
 
 `export DD_SITE="datadoghq.com" DD_API_KEY="<YOUR_API_KEY>" DD_APP_KEY="<YOUR_APP_KEY>"`
 
