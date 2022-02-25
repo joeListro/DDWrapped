@@ -16,9 +16,10 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-Year2022 = datetime.datetime(2022, 1, 1, 0, 0, 0, 0, tzinfo=tz.gettz())
+#Only define the date once for maintainability.
+Year = datetime.datetime(2022, 1, 1, 0, 0, 0, 0, tzinfo=tz.gettz())
 
-print("Since Jan 1, 2022, you have created:\n------------------------------------")
+print(f"{bcolors.UNDERLINE}Since Jan 1, 2022, you have created:{bcolors.ENDC}")
 
 #Get Number of Dashboards created since the beginning of the year.
 count=0
@@ -28,7 +29,7 @@ with ApiClient(configuration) as api_client:
     response = api_instance.list_dashboards(filter_shared=False)
 
     for dash in response.dashboards:
-        if dash.created_at > Year2022:
+        if dash.created_at > Year:
             # Only add the dashboard to the count if it was created after the new year.
             count+=1
 
@@ -42,7 +43,7 @@ with ApiClient(configuration) as api_client:
     response = api_instance.list_notebooks()
 
     for note in response.data:
-        if note.attributes.created > Year2022:
+        if note.attributes.created > Year:
             count+=1
 
     print(f"{bcolors.OKGREEN}", count, "Notebooks")
@@ -55,15 +56,46 @@ with ApiClient(configuration) as api_client:
     response = api_instance.list_monitors()
 
     for monitor in response:
-        if monitor.created > Year2022:
+        if monitor.created > Year:
             count+=1
 
     print(f"{bcolors.OKGREEN}", count, "Monitors")
 
 
 # Incidents
-print(f"{bcolors.HEADER}INCIDENTS")
+print(f"{bcolors.UNDERLINE}{bcolors.HEADER}INCIDENTS{bcolors.ENDC}")
+
 #Get Number of Incidents
-print(f"{bcolors.OKCYAN}You have had X Incidents")
+
+#Incidents use v2 of the api client
+from datadog_api_client.v2 import ApiClient, Configuration
+from datadog_api_client.v2.api.incidents_api import IncidentsApi
+
+#v2 of the api client generates an unstable operation user warning, ignore it for now
+import warnings
+
+#Python program to find the average of an int list
+def Average(resTime):
+    return sum(resTime) / len(resTime)
+
+count=0
+resTime=[]
+numIncidents=0
+configuration = Configuration()
+configuration.unstable_operations["list_incidents"] = True
+with ApiClient(configuration) as api_client:
+    api_instance = IncidentsApi(api_client)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning)
+        response = api_instance.list_incidents()
+
+    for incident in response.data:
+        if incident.attributes.created > Year:
+            count+=1
+        resTime.append(incident.attributes.time_to_resolve)
+
+    print(f"{bcolors.OKCYAN}You have had", count, "New Incidents")
+
 #Get Average time to resolution for Incidents retrieved above.
-print(f"{bcolors.OKCYAN}The average time to resolve an incident in Datadog this year was: XX minutes")
+avgTimeMins=Average(resTime)/60
+print(f"{bcolors.OKCYAN}The average time to resolve an incident in Datadog this year was:", avgTimeMins, "minutes")
