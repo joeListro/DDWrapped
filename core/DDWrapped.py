@@ -1,9 +1,15 @@
+from cgi import print_environ_usage
+import os
+import time
 import datetime
+from dateutil.parser import parse as dateutil_parser
 from dateutil import tz
-from datadog_api_client.v1 import ApiClient, Configuration
+from datadog_api_client.v1 import ApiClient, ApiException, Configuration
 from datadog_api_client.v1.api.dashboards_api import DashboardsApi
 from datadog_api_client.v1.api.notebooks_api import NotebooksApi
 from datadog_api_client.v1.api.monitors_api import MonitorsApi
+from datadog_api_client.v1.api import hosts_api
+from datadog_api_client.v1.models import *
 
 class bcolors:
     HEADER = '\033[95m'
@@ -61,6 +67,22 @@ with ApiClient(configuration) as api_client:
 
     print(f"{bcolors.OKGREEN}", count, "Monitors")
 
+# Hosts
+print(f"{bcolors.UNDERLINE}{bcolors.HEADER}HOSTS{bcolors.ENDC}")
+
+configuration = Configuration()
+with ApiClient(configuration) as api_client:
+    api_instance = hosts_api.HostsApi(api_client)
+    _from = 1640995200  # int | Number of seconds from which you want to get total number of active hosts. (optional)
+    try:
+        # Get the total number of active hosts
+        api_response = api_instance.get_host_totals(_from=_from)
+        totalHosts=api_response.total_active
+        totalUp=api_response.total_up
+        print(f"{bcolors.OKBLUE}You have had", totalHosts, "total active hosts.")
+        print(f"{bcolors.OKBLUE}You have", totalUp, "total up hosts.")
+    except ApiException as e:
+        print("Exception when calling HostsApi->get_host_totals: %s\n" % e)
 
 # Incidents
 print(f"{bcolors.UNDERLINE}{bcolors.HEADER}INCIDENTS{bcolors.ENDC}")
@@ -96,6 +118,14 @@ with ApiClient(configuration) as api_client:
 
     print(f"{bcolors.OKCYAN}You have had", count, "New Incidents")
 
-#Get Average time to resolution for Incidents retrieved above.
+#Get Average time to resolution for Incidents retrieved above and filter to give a useful metric.
 avgTimeMins=Average(resTime)/60
-print(f"{bcolors.OKCYAN}The average time to resolve an incident in Datadog this year was:", avgTimeMins, "minutes")
+if avgTimeMins > 1000:
+    avgTimeHrs=avgTimeMins/60
+    if avgTimeHrs > 1000:
+        avgTimeDays=avgTimeHrs/12
+        print(f"{bcolors.OKCYAN}The average time to resolve an incident in Datadog was:", avgTimeDays, "days")
+    else:
+        print(f"{bcolors.OKCYAN}The average time to resolve an incident in Datadog was:", avgTimeHrs, "hours")
+else:
+    print(f"{bcolors.OKCYAN}The average time to resolve an incident in Datadog was:", avgTimeMins, "minutes")
